@@ -1,10 +1,15 @@
-use anchor_lang::prelude::*;
+use anchor_lang::constant;
+
+pub const DISCRIMINATOR_SIZE: usize = 8;
 
 #[constant]
-pub const COUNTER_SEED: &[u8] = b"counter";
+pub const CONFIG_SEED: &[u8] = b"config";
 
 #[constant]
-pub const HELLO_WORLD_LAMPORTS: u64 = 1;
+pub const POOL_SEED: &[u8] = b"pool";
 
 #[constant]
-pub const MAX_COUNT: u64 = 10;
+pub const VAULT_SEED: &[u8] = b"vault";
+
+#[constant]
+pub const POSITION_SEED: &[u8] = b"position";

@@ -1,25 +1,30 @@
 pub mod constants;
 pub mod error;
 pub mod instructions;
-pub mod state;
+pub mod states;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
 pub use instructions::*;
-pub use state::*;
+pub use states::*;
 
-declare_id!("E3GJVnGuMY187ztijNmnTKDwLV4avi4AcF9gCxRiYYWg");
+declare_id!("7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv");
 
 #[program]
 pub mod reflex {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        crate::instructions::initialize::handle_initialize(ctx)
+    pub fn initialize(ctx: Context<Initialize>, fee_bps: u16, briber_fee_bps: u16) -> Result<()> {
+        ctx.accounts
+            .proccess_ix(fee_bps, briber_fee_bps, &ctx.bumps)
     }
 
-    pub fn increment(ctx: Context<Increment>) -> Result<()> {
-        crate::instructions::increment::handle_increment(ctx)
+    pub fn deposit_outcome(ctx: Context<DepositOutcome>, amount: u64) -> Result<()> {
+        ctx.accounts.proccess_ix(amount, &ctx.bumps)
+    }
+
+    pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
+        ctx.accounts.proccess_ix()
     }
 }

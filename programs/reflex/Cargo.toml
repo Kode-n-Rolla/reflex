@@ -19,8 +19,6 @@ anchor-debug = []
 custom-heap = []
 custom-panic = []
 
-skip-checks = []
-
 [dependencies]
 anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }
 anchor-spl = "1.2.0"

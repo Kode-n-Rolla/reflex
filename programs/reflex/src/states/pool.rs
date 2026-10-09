@@ -6,6 +6,7 @@ use crate::{error::ReflexError, DISCRIMINATOR_SIZE};
 #[derive(InitSpace)]
 pub struct Pool {
     pub creator: Pubkey,
+    pub market: Pubkey,
     pub incentive_mint: Pubkey,
     pub yes_outcome_mint: Pubkey,
     pub no_outcome_mint: Pubkey,

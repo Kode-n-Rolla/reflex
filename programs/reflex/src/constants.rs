@@ -13,3 +13,7 @@ pub const VAULT_SEED: &[u8] = b"vault";
 
 #[constant]
 pub const POSITION_SEED: &[u8] = b"position";
+
+pub const WORLD_MARKET_DATA_LEN: usize = 320;
+pub const WORLD_YES_MINT_OFFSET: usize = 72;
+pub const WORLD_NO_MINT_OFFSET: usize = 104;

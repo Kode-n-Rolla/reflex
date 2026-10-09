@@ -152,7 +152,7 @@ impl<'info> ClaimRewards<'info> {
 
             token_interface::transfer_checked(cpi_ctx, payout, self.mint.decimals)?;
         }
-        
+
         Ok(())
     }
 }

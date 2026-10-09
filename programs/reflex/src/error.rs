@@ -16,4 +16,8 @@ pub enum ReflexError {
     PooltNotSettled,
     #[msg("The rewards must be greater than zero")]
     ZeroRewards,
+    #[msg("The supplied World market is not valid")]
+    InvalidMarket,
+    #[msg("The outcome mints do not belong to the supplied World market")]
+    WrongMarketMints,
 }

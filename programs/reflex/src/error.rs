@@ -28,4 +28,6 @@ pub enum ReflexError {
     InvalidFeeBps,
     #[msg("No briber fees are available")]
     NoFeesAvailable,
+    #[msg("The deposit must create a positive net stake")]
+    ZeroEffectiveStake,
 }

@@ -62,6 +62,8 @@ impl<'info> DepositOutcome<'info> {
             ReflexError::WrongMint
         );
 
+        let (fee, net_amount) = calculate_deposit_amounts(amount, self.pool.briber_fee_bps)?;
+
         let cpi_accounts = token_interface::TransferChecked {
             authority: self.staker.to_account_info(),
             from: self.staker_ata.to_account_info(),
@@ -72,15 +74,6 @@ impl<'info> DepositOutcome<'info> {
         let cpi_ctx = CpiContext::new(*self.token_program.key, cpi_accounts);
 
         token_interface::transfer_checked(cpi_ctx, amount, self.outcome_mint.decimals)?;
-
-        let fee: u64 = u128::from(amount)
-            .checked_mul(u128::from(self.pool.briber_fee_bps))
-            .ok_or(ReflexError::MathOverflow)?
-            .checked_div(u128::from(BPS_DENOMINATOR))
-            .ok_or(ReflexError::MathOverflow)?
-            .try_into()
-            .map_err(|_| ReflexError::MathOverflow)?;
-        let net_amount = amount.checked_sub(fee).ok_or(ReflexError::MathOverflow)?;
 
         if self.position.authority == Pubkey::default() {
             self.position.authority = self.staker.key();
@@ -116,5 +109,41 @@ impl<'info> DepositOutcome<'info> {
         }
 
         Ok(())
+    }
+}
+
+fn calculate_deposit_amounts(amount: u64, briber_fee_bps: u16) -> Result<(u64, u64)> {
+    require!(amount > 0, ReflexError::ZeroEffectiveStake);
+
+    let fee: u64 = u128::from(amount)
+        .checked_mul(u128::from(briber_fee_bps))
+        .ok_or(ReflexError::MathOverflow)?
+        .checked_div(u128::from(BPS_DENOMINATOR))
+        .ok_or(ReflexError::MathOverflow)?
+        .try_into()
+        .map_err(|_| ReflexError::MathOverflow)?;
+    let net_amount = amount.checked_sub(fee).ok_or(ReflexError::MathOverflow)?;
+    require!(net_amount > 0, ReflexError::ZeroEffectiveStake);
+
+    Ok((fee, net_amount))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::calculate_deposit_amounts;
+
+    #[test]
+    fn rejects_zero_amount() {
+        assert!(calculate_deposit_amounts(0, 500).is_err());
+    }
+
+    #[test]
+    fn rejects_positive_amount_with_zero_net_stake() {
+        assert!(calculate_deposit_amounts(1, 10_000).is_err());
+    }
+
+    #[test]
+    fn calculates_normal_net_amount() {
+        assert_eq!(calculate_deposit_amounts(100, 500).unwrap(), (5, 95));
     }
 }

@@ -28,6 +28,10 @@ pub mod reflex {
         ctx.accounts.proccess_ix(amount, &ctx.bumps)
     }
 
+    pub fn resolve_pool(ctx: Context<ResolvePool>, outcome: ResolutionOutcome) -> Result<()> {
+        ctx.accounts.proccess_ix(outcome)
+    }
+
     pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         ctx.accounts.proccess_ix()
     }

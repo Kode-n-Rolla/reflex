@@ -35,4 +35,8 @@ pub mod reflex {
     pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         ctx.accounts.proccess_ix()
     }
+
+    pub fn withdraw_briber_fees(ctx: Context<WithdrawBriberFees>) -> Result<()> {
+        ctx.accounts.proccess_ix()
+    }
 }

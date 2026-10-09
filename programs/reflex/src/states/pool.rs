@@ -27,6 +27,7 @@ pub struct Pool {
     pub no_last_update_ts: i64,
 
     pub fee_bps: u16,
+    pub briber_fee_bps: u16,
     pub status: PoolStatus,
     pub vault_bump: u8,
     pub bump: u8,

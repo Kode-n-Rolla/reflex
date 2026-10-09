@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants::*, Config};
+use crate::{constants::*, error::ReflexError, Config};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -26,6 +26,12 @@ impl<'info> Initialize<'info> {
         briber_fee_bps: u16,
         bumps: &InitializeBumps,
     ) -> Result<()> {
+        require!(fee_bps == 0, ReflexError::ProtocolFeeDisabled);
+        require!(
+            u64::from(briber_fee_bps) <= BPS_DENOMINATOR,
+            ReflexError::InvalidFeeBps
+        );
+
         self.config.set_inner(Config {
             authority: *self.authority.key,
             fee_bps,

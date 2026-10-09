@@ -20,4 +20,12 @@ pub enum ReflexError {
     InvalidMarket,
     #[msg("The outcome mints do not belong to the supplied World market")]
     WrongMarketMints,
+    #[msg("The incentive mint is not supported")]
+    UnsupportedIncentiveMint,
+    #[msg("The protocol fee must be zero for this MVP")]
+    ProtocolFeeDisabled,
+    #[msg("The fee basis points are invalid")]
+    InvalidFeeBps,
+    #[msg("No briber fees are available")]
+    NoFeesAvailable,
 }

@@ -36,7 +36,11 @@ pub struct CreatePool<'info> {
     )]
     pub pool: Account<'info, Pool>,
 
-    #[account(mint::token_program = token_program)]
+    #[account(
+        mint::token_program = token_program,
+        constraint = is_supported_incentive_mint(&incentive_mint, &creator.key())
+            @ ReflexError::UnsupportedIncentiveMint
+    )]
     pub incentive_mint: InterfaceAccount<'info, Mint>,
     #[account(mint::token_program = token_program)]
     pub yes_outcome_mint: InterfaceAccount<'info, Mint>,
@@ -114,6 +118,7 @@ impl<'info> CreatePool<'info> {
             yes_last_update_ts: now,
             no_last_update_ts: now,
             fee_bps: self.config.fee_bps,
+            briber_fee_bps: self.config.briber_fee_bps,
             status: PoolStatus::Open,
             vault_bump: bumps.pool_vault,
             bump: bumps.pool,
@@ -131,6 +136,21 @@ impl<'info> CreatePool<'info> {
 
         Ok(())
     }
+}
+
+fn is_supported_incentive_mint(mint: &InterfaceAccount<'_, Mint>, _creator: &Pubkey) -> bool {
+    if mint.key() == USDC_MINT || mint.key() == WSOL_MINT {
+        return true;
+    }
+
+    #[cfg(feature = "local-test")]
+    {
+        return mint.mint_authority
+            == anchor_lang::solana_program::program_option::COption::Some(*_creator);
+    }
+
+    #[cfg(not(feature = "local-test"))]
+    false
 }
 
 fn market_has_outcome_mints(

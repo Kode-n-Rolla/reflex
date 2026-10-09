@@ -73,6 +73,15 @@ impl<'info> DepositOutcome<'info> {
 
         token_interface::transfer_checked(cpi_ctx, amount, self.outcome_mint.decimals)?;
 
+        let fee: u64 = u128::from(amount)
+            .checked_mul(u128::from(self.pool.briber_fee_bps))
+            .ok_or(ReflexError::MathOverflow)?
+            .checked_div(u128::from(BPS_DENOMINATOR))
+            .ok_or(ReflexError::MathOverflow)?
+            .try_into()
+            .map_err(|_| ReflexError::MathOverflow)?;
+        let net_amount = amount.checked_sub(fee).ok_or(ReflexError::MathOverflow)?;
+
         if self.position.authority == Pubkey::default() {
             self.position.authority = self.staker.key();
             self.position.bump = bumps.position;
@@ -84,14 +93,24 @@ impl<'info> DepositOutcome<'info> {
             self.pool.accrue_yes(now)?;
             self.position.accrue_yes(now)?;
 
-            self.pool.add_yes_staked(amount)?;
-            self.position.add_yes_staked(amount)?;
+            self.pool.add_yes_staked(net_amount)?;
+            self.position.add_yes_staked(net_amount)?;
+            self.pool.available_yes_fees = self
+                .pool
+                .available_yes_fees
+                .checked_add(fee)
+                .ok_or(ReflexError::MathOverflow)?;
         } else if self.outcome_mint.key() == self.pool.no_outcome_mint {
             self.pool.accrue_no(now)?;
             self.position.accrue_no(now)?;
 
-            self.pool.add_no_staked(amount)?;
-            self.position.add_no_staked(amount)?;
+            self.pool.add_no_staked(net_amount)?;
+            self.position.add_no_staked(net_amount)?;
+            self.pool.available_no_fees = self
+                .pool
+                .available_no_fees
+                .checked_add(fee)
+                .ok_or(ReflexError::MathOverflow)?;
         } else {
             return Err(ReflexError::WrongMint.into());
         }

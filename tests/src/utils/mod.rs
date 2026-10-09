@@ -19,7 +19,6 @@ use spl_token_interface::instruction::{initialize_mint2, mint_to};
 // constants
 // -----------------------------------------------------------------------------
 pub const PROGRAM_ID: Pubkey = pubkey!("E3GJVnGuMY187ztijNmnTKDwLV4avi4AcF9gCxRiYYWg");
-pub const PREDICT_PROGRAM_ID: Pubkey = pubkey!("prediCtPZCttYMvm2W3PtxmMxLmT1dtN7riU6Cxh6tM");
 pub const HARDCODED_MARKET: Pubkey = pubkey!("JDryy7Dowir9XXAaW2Gyosc5Hdm2hRv1KyU4HC3wR92B");
 
 pub const ONE_SOL: u64 = 1_000_000_000;
@@ -28,7 +27,6 @@ pub const INITIAL_MINT_AMOUNT: u64 = 10_000_000_000; // 10k USDC
 pub const INITIAL_OUTCOME_AMOUNT: u64 = 5_000_000_000;
 pub const INITIAL_STAKE_AMOUNT: u64 = 1_000_000_000;
 pub const INITIAL_POOL_FUNDING_AMOUNT: u64 = 1_000_000_000;
-pub const ADDITIONAL_INCENTIVE_AMOUNT: u64 = 500_000_000;
 
 // -----------------------------------------------------------------------------
 // structs
@@ -51,6 +49,7 @@ pub struct TestContext {
     pub program: Program<Rc<Keypair>>,
     pub accounts: TestAccounts,
     pub pdas: TestPdas,
+    pub market: Pubkey,
 }
 
 pub struct MintSetup {
@@ -160,9 +159,9 @@ pub fn derive_pdas(program_id: &Pubkey, market: &Pubkey, staker_address: &Pubkey
 // -----------------------------------------------------------------------------
 // initial setup fn
 // -----------------------------------------------------------------------------
-pub fn setup() -> TestContext {
+pub fn setup(market: Pubkey) -> TestContext {
     let accounts = load_accounts();
-    let pdas = derive_pdas(&PROGRAM_ID, &HARDCODED_MARKET, &accounts.staker.pubkey());
+    let pdas = derive_pdas(&PROGRAM_ID, &market, &accounts.staker.pubkey());
 
     let authority_rc = Rc::new(accounts.authority.insecure_clone());
     let client = Client::new_with_options(
@@ -177,6 +176,7 @@ pub fn setup() -> TestContext {
 
     println!("{}", program.rpc().url());
 
+    fund_account(&accounts.authority.pubkey());
     fund_account(&accounts.creator.pubkey());
     fund_account(&accounts.staker.pubkey());
 
@@ -185,10 +185,11 @@ pub fn setup() -> TestContext {
         program,
         accounts,
         pdas,
+        market,
     }
 }
 
-fn fund_account(address: &Pubkey) {
+pub(super) fn fund_account(address: &Pubkey) {
     let response: Value = HttpClient::new()
         .post("http://127.0.0.1:8899")
         .json(&json!({
@@ -208,6 +209,46 @@ fn fund_account(address: &Pubkey) {
         .expect("failed to fund test account")
         .json()
         .expect("invalid surfnet_setAccount response");
+
+    assert!(
+        response.get("error").is_none(),
+        "surfnet_setAccount failed: {response}"
+    );
+}
+
+pub fn set_token_balance(ctx: &TestContext, address: &Pubkey, amount: u64) {
+    let mut account = ctx
+        .program
+        .rpc()
+        .get_account(address)
+        .expect("failed to fetch token account for balance override");
+    account.data[64..72].copy_from_slice(&amount.to_le_bytes());
+    let data = account
+        .data
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+
+    let response: Value = HttpClient::new()
+        .post("http://127.0.0.1:8899")
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "surfnet_setAccount",
+            "params": [
+                address.to_string(),
+                {
+                    "lamports": account.lamports,
+                    "data": data,
+                    "owner": account.owner.to_string(),
+                    "executable": account.executable
+                }
+            ]
+        }))
+        .send()
+        .expect("failed to override token balance")
+        .json()
+        .expect("invalid token balance override response");
 
     assert!(
         response.get("error").is_none(),

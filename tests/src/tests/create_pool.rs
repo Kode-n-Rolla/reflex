@@ -6,11 +6,15 @@ use serde_json::{json, Value};
 use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
+use spl_associated_token_account_interface::{
+    address::get_associated_token_address, instruction::create_associated_token_account,
+};
+use spl_token_interface::instruction::mint_to;
 
 use crate::utils::{
     derive_outcome_vault, fetch_account, prepare_mint_and_ata, IncentiveSetup, OutcomeSetup,
-    PoolSetup, TestContext, HARDCODED_MARKET, INITIAL_MINT_AMOUNT, INITIAL_POOL_FUNDING_AMOUNT,
-    PROGRAM_ID, USDC_DECIMALS,
+    PoolSetup, TestContext, INITIAL_MINT_AMOUNT, INITIAL_OUTCOME_AMOUNT,
+    INITIAL_POOL_FUNDING_AMOUNT, PROGRAM_ID, USDC_DECIMALS,
 };
 
 pub(super) fn run(ctx: &TestContext) -> PoolSetup {
@@ -25,7 +29,9 @@ pub(super) fn run(ctx: &TestContext) -> PoolSetup {
         [&incentive.mint, &yes.mint, &no.mint],
         [&incentive, &yes, &no],
     );
-    set_mock_market(&yes.mint.pubkey(), &no.mint.pubkey());
+    let staker_yes_ata = fund_outcome(ctx, &ctx.accounts.staker.pubkey(), &yes.mint.pubkey());
+    let staker_no_ata = fund_outcome(ctx, &ctx.accounts.staker.pubkey(), &no.mint.pubkey());
+    set_mock_market(&ctx.market, &yes.mint.pubkey(), &no.mint.pubkey());
 
     let yes_vault = derive_outcome_vault(&PROGRAM_ID, &ctx.pdas.pool, &yes.mint.pubkey());
     let no_vault = derive_outcome_vault(&PROGRAM_ID, &ctx.pdas.pool, &no.mint.pubkey());
@@ -33,7 +39,7 @@ pub(super) fn run(ctx: &TestContext) -> PoolSetup {
     let accounts = reflex::accounts::CreatePool {
         creator,
         config: ctx.pdas.config,
-        market: HARDCODED_MARKET,
+        market: ctx.market,
         pool: ctx.pdas.pool,
         incentive_mint: incentive.mint.pubkey(),
         yes_outcome_mint: yes.mint.pubkey(),
@@ -142,12 +148,12 @@ pub(super) fn run(ctx: &TestContext) -> PoolSetup {
         },
         yes: OutcomeSetup {
             mint: yes.mint.pubkey(),
-            ata: yes.ata,
+            ata: staker_yes_ata,
             vault: yes_vault,
         },
         no: OutcomeSetup {
             mint: no.mint.pubkey(),
-            ata: no.ata,
+            ata: staker_no_ata,
             vault: no_vault,
         },
     }
@@ -157,7 +163,7 @@ pub(super) fn assert_created(ctx: &TestContext, setup: &PoolSetup) {
     let pool: reflex::Pool = fetch_account(ctx, &ctx.pdas.pool);
 
     assert_eq!(pool.creator, ctx.accounts.creator.pubkey());
-    assert_eq!(pool.market, HARDCODED_MARKET);
+    assert_eq!(pool.market, ctx.market);
     assert_eq!(pool.incentive_mint, setup.incentive.mint);
     assert_eq!(pool.yes_outcome_mint, setup.yes.mint);
     assert_eq!(pool.no_outcome_mint, setup.no.mint);
@@ -202,7 +208,33 @@ fn create_mints(ctx: &TestContext, signers: [&Keypair; 3], setups: [&crate::util
     request.send().expect("failed to create test mints");
 }
 
-fn set_mock_market(yes_mint: &Pubkey, no_mint: &Pubkey) {
+pub(super) fn fund_outcome(ctx: &TestContext, owner: &Pubkey, mint: &Pubkey) -> Pubkey {
+    let creator = ctx.accounts.creator.pubkey();
+    let ata = get_associated_token_address(owner, mint);
+    let create_ata =
+        create_associated_token_account(&creator, owner, mint, &spl_token_interface::ID);
+    let mint_tokens = mint_to(
+        &spl_token_interface::ID,
+        mint,
+        &ata,
+        &creator,
+        &[&creator],
+        INITIAL_OUTCOME_AMOUNT,
+    )
+    .expect("failed to build mint_to instruction");
+
+    ctx.program
+        .request()
+        .instruction(create_ata)
+        .instruction(mint_tokens)
+        .payer(Rc::new(ctx.accounts.creator.insecure_clone()))
+        .send()
+        .expect("failed to fund staker outcome account");
+
+    ata
+}
+
+fn set_mock_market(market: &Pubkey, yes_mint: &Pubkey, no_mint: &Pubkey) {
     let mut data = vec![0_u8; reflex::constants::WORLD_MARKET_DATA_LEN];
     data[reflex::constants::WORLD_YES_MINT_OFFSET..reflex::constants::WORLD_NO_MINT_OFFSET]
         .copy_from_slice(yes_mint.as_ref());
@@ -220,7 +252,7 @@ fn set_mock_market(yes_mint: &Pubkey, no_mint: &Pubkey) {
             "id": 1,
             "method": "surfnet_setAccount",
             "params": [
-                HARDCODED_MARKET.to_string(),
+                market.to_string(),
                 {
                     "lamports": 10_000_000,
                     "data": data,

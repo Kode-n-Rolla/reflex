@@ -12,7 +12,7 @@ use std::{
 
 use anchor_client::anchor_lang::prelude::clock::SECONDS_PER_DAY;
 use reqwest::blocking::Client;
-use serde_json::json;
+use serde_json::{json, Value};
 use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
@@ -64,6 +64,7 @@ fn run_lifecycle(ctx: &TestContext, outcome: reflex::ResolutionOutcome) {
     let pool = create_pool::run(ctx);
     create_pool::assert_created(ctx, &pool);
 
+    deposit_outcome::assert_zero_amount_rejected(ctx, &pool);
     deposit_outcome::assert_wrong_vault_rejected(ctx, &pool);
     deposit_outcome::run(ctx, &pool.yes, INITIAL_STAKE_AMOUNT).expect("initial YES stake failed");
 
@@ -358,17 +359,38 @@ fn advance_time(days: i64) {
         "params": [params]
     });
 
-    let res = client
+    let response = client
         .post(rpc_url)
         .header("Content-Type", "application/json")
         .json(&payload)
-        .send();
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
+        .expect("Surfpool time-travel HTTP request failed")
+        .json::<Value>()
+        .expect("Surfpool returned invalid time-travel JSON");
 
-    if res.is_ok() {
-        println!("Advance {} days", days)
-    } else {
-        println!("❌ Fail advancing days")
+    validate_time_travel_response(&response).expect("Surfpool time travel failed");
+    println!("Advance {} days", days);
+}
+
+fn validate_time_travel_response(response: &Value) -> Result<(), String> {
+    if let Some(error) = response.get("error") {
+        return Err(format!("JSON-RPC error: {error}"));
     }
+    match response.get("result") {
+        Some(result) if !result.is_null() => Ok(()),
+        _ => Err(format!("missing JSON-RPC result: {response}")),
+    }
+}
 
-    // let res = res.unwrap().json::<Value>().unwrap();
+#[test]
+#[should_panic(expected = "Surfpool time travel failed")]
+fn failed_time_travel_fails_the_test() {
+    let response = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "error": {"code": -32000, "message": "time travel failed"}
+    });
+
+    validate_time_travel_response(&response).expect("Surfpool time travel failed");
 }

@@ -107,6 +107,14 @@ pub(super) fn assert_wrong_vault_rejected(ctx: &TestContext, setup: &PoolSetup) 
     assert!(result.is_err(), "wrong outcome vault must be rejected");
 }
 
+pub(super) fn assert_zero_amount_rejected(ctx: &TestContext, setup: &PoolSetup) {
+    let vault_before = token_balance(ctx, &setup.yes.vault);
+    let result = run(ctx, &setup.yes, 0);
+
+    assert!(result.is_err(), "zero-amount deposit must be rejected");
+    assert_eq!(token_balance(ctx, &setup.yes.vault), vault_before);
+}
+
 fn token_balance(ctx: &TestContext, address: &Pubkey) -> u64 {
     let account = ctx
         .program

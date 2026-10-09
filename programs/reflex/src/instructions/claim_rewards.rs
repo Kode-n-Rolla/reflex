@@ -16,7 +16,7 @@ pub struct ClaimRewards<'info> {
         seeds = [POOL_SEED, market.key().as_ref()],
         bump = pool.bump,
     )]
-    pub pool: Account<'info, Pool>,
+    pub pool: Box<Account<'info, Pool>>,
 
     /// CHECK: by owner and data len
     // #[account(/* owner = *predict_program.key, */ constraint = market.data_len() == 0)]
@@ -29,11 +29,11 @@ pub struct ClaimRewards<'info> {
         seeds = [POSITION_SEED, pool.key().as_ref(), staker.key().as_ref()],
         bump = position.bump
     )]
-    pub position: Account<'info, Position>,
+    pub position: Box<Account<'info, Position>>,
 
     #[account(address = pool.incentive_mint)]
-    pub mint: InterfaceAccount<'info, Mint>,
-    pub outcome_mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
+    pub outcome_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -42,7 +42,7 @@ pub struct ClaimRewards<'info> {
         seeds = [VAULT_SEED, pool.key().as_ref()],
         bump = pool.vault_bump
     )]
-    pub pool_vault: InterfaceAccount<'info, TokenAccount>,
+    pub pool_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -51,7 +51,7 @@ pub struct ClaimRewards<'info> {
         seeds = [VAULT_SEED, pool.key().as_ref(), outcome_mint.key().as_ref()],
         bump
     )]
-    pub pool_outcome_vault: InterfaceAccount<'info, TokenAccount>,
+    pub pool_outcome_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -59,14 +59,14 @@ pub struct ClaimRewards<'info> {
         associated_token::mint = mint,
         associated_token::authority = staker
     )]
-    pub staker_ata: InterfaceAccount<'info, TokenAccount>,
+    pub staker_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = outcome_mint,
         associated_token::authority = staker
     )]
-    pub staker_outcome_ata: InterfaceAccount<'info, TokenAccount>,
+    pub staker_outcome_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: by id
     // #[account(address = Pubkey::from_str(""))]

@@ -1,13 +1,14 @@
 skip_local_validator = true
 
 [toolchain]
+anchor_version = "1.2.0"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.localnet]
-reflex = "7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv"
+reflex = "E3GJVnGuMY187ztijNmnTKDwLV4avi4AcF9gCxRiYYWg"
 
 [provider]
 cluster = "localnet"

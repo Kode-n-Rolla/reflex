@@ -27,6 +27,11 @@ pub const INITIAL_MINT_AMOUNT: u64 = 10_000_000_000; // 10k USDC
 pub const INITIAL_OUTCOME_AMOUNT: u64 = 5_000_000_000;
 pub const INITIAL_STAKE_AMOUNT: u64 = 1_000_000_000;
 pub const INITIAL_POOL_FUNDING_AMOUNT: u64 = 1_000_000_000;
+pub const BRIBER_FEE_BPS: u16 = 500;
+
+pub fn briber_fee(amount: u64) -> u64 {
+    (u128::from(amount) * u128::from(BRIBER_FEE_BPS) / u128::from(reflex::BPS_DENOMINATOR)) as u64
+}
 
 // -----------------------------------------------------------------------------
 // structs

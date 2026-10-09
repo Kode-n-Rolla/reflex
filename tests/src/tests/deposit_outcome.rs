@@ -7,7 +7,7 @@ use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
 
 use crate::utils::{
-    fetch_account, OutcomeSetup, PoolSetup, TestContext, INITIAL_OUTCOME_AMOUNT,
+    briber_fee, fetch_account, OutcomeSetup, PoolSetup, TestContext, INITIAL_OUTCOME_AMOUNT,
     INITIAL_STAKE_AMOUNT,
 };
 
@@ -54,20 +54,28 @@ pub(super) fn run_for(
 pub(super) fn assert_deposited(ctx: &TestContext, setup: &PoolSetup) {
     let pool: reflex::Pool = fetch_account(ctx, &ctx.pdas.pool);
     let position: reflex::Position = fetch_account(ctx, &ctx.pdas.position);
-    let expected_yes = INITIAL_STAKE_AMOUNT + INITIAL_STAKE_AMOUNT / 2;
+    let gross_yes = INITIAL_STAKE_AMOUNT + INITIAL_STAKE_AMOUNT / 2;
+    let yes_fees = briber_fee(INITIAL_STAKE_AMOUNT) + briber_fee(INITIAL_STAKE_AMOUNT / 2);
+    let no_fees = briber_fee(INITIAL_STAKE_AMOUNT);
+    let expected_yes = gross_yes - yes_fees;
+    let expected_no = INITIAL_STAKE_AMOUNT - no_fees;
 
     assert_eq!(pool.total_yes_staked, expected_yes);
-    assert_eq!(pool.total_no_staked, INITIAL_STAKE_AMOUNT);
+    assert_eq!(pool.total_no_staked, expected_no);
     assert_eq!(position.authority, ctx.accounts.staker.pubkey());
     assert_eq!(position.yes_staked, expected_yes);
-    assert_eq!(position.no_staked, INITIAL_STAKE_AMOUNT);
+    assert_eq!(position.no_staked, expected_no);
+    assert_eq!(pool.available_yes_fees, yes_fees);
+    assert_eq!(pool.available_no_fees, no_fees);
     assert!(pool.yes_stake_seconds > 0);
     assert!(position.yes_stake_seconds > 0);
-    assert_eq!(token_balance(ctx, &setup.yes.vault), expected_yes);
+    assert_eq!(pool.yes_stake_seconds, position.yes_stake_seconds);
+    assert_eq!(pool.no_stake_seconds, position.no_stake_seconds);
+    assert_eq!(token_balance(ctx, &setup.yes.vault), gross_yes);
     assert_eq!(token_balance(ctx, &setup.no.vault), INITIAL_STAKE_AMOUNT);
     assert_eq!(
         token_balance(ctx, &setup.yes.ata),
-        INITIAL_OUTCOME_AMOUNT - expected_yes
+        INITIAL_OUTCOME_AMOUNT - gross_yes
     );
     assert_eq!(
         token_balance(ctx, &setup.no.ata),

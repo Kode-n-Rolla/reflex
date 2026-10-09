@@ -3,6 +3,7 @@ mod create_pool;
 mod deposit_outcome;
 mod initialize;
 mod resolve_pool;
+mod withdraw_briber_fees;
 
 use std::{
     sync::atomic::{AtomicI64, Ordering},
@@ -89,6 +90,7 @@ fn run_lifecycle(ctx: &TestContext, outcome: reflex::ResolutionOutcome) {
     claim_rewards::assert_wrong_signer_rejected(ctx, &pool);
     claim_rewards::assert_wrong_vault_rejected(ctx, &pool);
     claim_rewards::run(ctx, &pool);
+    withdraw_briber_fees::run(ctx, &pool);
 }
 
 fn run_single_side_lifecycle(ctx: &TestContext, winning_side: bool) {
@@ -181,7 +183,11 @@ fn run_shortfall_lifecycle(ctx: &TestContext, incentive_shortfall: bool) {
     if incentive_shortfall {
         set_token_balance(ctx, &ctx.pdas.pool_vault, INITIAL_POOL_FUNDING_AMOUNT - 1);
     } else {
-        set_token_balance(ctx, &pool.yes.vault, INITIAL_STAKE_AMOUNT - 1);
+        set_token_balance(
+            ctx,
+            &pool.yes.vault,
+            INITIAL_STAKE_AMOUNT - crate::utils::briber_fee(INITIAL_STAKE_AMOUNT) - 1,
+        );
     }
 
     claim_rewards::assert_shortfall_rejected_atomically(ctx, &pool);
@@ -324,7 +330,7 @@ fn assert_initialized(ctx: &TestContext) {
     let config: reflex::Config = fetch_account(ctx, &ctx.pdas.config);
 
     assert_eq!(config.authority, ctx.accounts.authority.pubkey());
-    assert_eq!(config.fee_bps, 500);
+    assert_eq!(config.fee_bps, 0);
     assert_eq!(config.briber_fee_bps, 500);
 }
 

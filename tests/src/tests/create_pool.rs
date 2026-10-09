@@ -9,7 +9,7 @@ use solana_signer::Signer;
 use spl_associated_token_account_interface::{
     address::get_associated_token_address, instruction::create_associated_token_account,
 };
-use spl_token_interface::instruction::mint_to;
+use spl_token_interface::instruction::{mint_to, set_authority, AuthorityType};
 
 use crate::utils::{
     derive_outcome_vault, fetch_account, prepare_mint_and_ata, IncentiveSetup, OutcomeSetup,
@@ -51,6 +51,51 @@ pub(super) fn run(ctx: &TestContext) -> PoolSetup {
         token_program: spl_token_interface::ID,
         system_program: solana_sdk_ids::system_program::id(),
     };
+
+    let unsupported =
+        prepare_mint_and_ata(&ctx.program, &creator, USDC_DECIMALS, INITIAL_MINT_AMOUNT);
+    ctx.program
+        .request()
+        .instruction(unsupported.create_account_ix.clone())
+        .instruction(unsupported.init_mint_ix.clone())
+        .instruction(unsupported.create_ata_ix.clone())
+        .instruction(unsupported.mint_to_ix.clone())
+        .signer(&unsupported.mint)
+        .payer(Rc::new(ctx.accounts.creator.insecure_clone()))
+        .send()
+        .expect("failed to create unsupported test mint");
+    let revoke_local_test_authority = set_authority(
+        &spl_token_interface::ID,
+        &unsupported.mint.pubkey(),
+        Some(&ctx.accounts.staker.pubkey()),
+        AuthorityType::MintTokens,
+        &creator,
+        &[&creator],
+    )
+    .expect("failed to build mint-authority change");
+    ctx.program
+        .request()
+        .instruction(revoke_local_test_authority)
+        .payer(Rc::new(ctx.accounts.creator.insecure_clone()))
+        .send()
+        .expect("failed to change unsupported mint authority");
+    let unsupported_result = ctx
+        .program
+        .request()
+        .accounts(reflex::accounts::CreatePool {
+            incentive_mint: unsupported.mint.pubkey(),
+            creator_incentive_account: unsupported.ata,
+            ..accounts.clone()
+        })
+        .args(reflex::instruction::CreatePool {
+            incentive_amount: INITIAL_POOL_FUNDING_AMOUNT,
+        })
+        .payer(Rc::new(ctx.accounts.creator.insecure_clone()))
+        .send();
+    assert!(
+        unsupported_result.is_err(),
+        "unsupported incentive mint must be rejected"
+    );
 
     let zero_result = ctx
         .program
@@ -177,7 +222,8 @@ pub(super) fn assert_created(ctx: &TestContext, setup: &PoolSetup) {
     assert_eq!(pool.resolution_timestamp, 0);
     assert_eq!(pool.yes_last_update_ts, pool.creation_timestamp);
     assert_eq!(pool.no_last_update_ts, pool.creation_timestamp);
-    assert_eq!(pool.fee_bps, 500);
+    assert_eq!(pool.fee_bps, 0);
+    assert_eq!(pool.briber_fee_bps, 500);
     assert!(pool.is_open());
     assert_eq!(
         token_balance(ctx, &ctx.pdas.pool_vault),

@@ -27,7 +27,7 @@ pub(super) fn run_for(
     position_address: Pubkey,
     yes_ata: Pubkey,
     no_ata: Pubkey,
-    expect_empty_outcome_vaults: bool,
+    expect_only_fees_in_outcome_vaults: bool,
 ) -> u64 {
     let staker = staker_keypair.pubkey();
     let staker_incentive_ata = get_associated_token_address(&staker, &setup.incentive.mint);
@@ -92,9 +92,12 @@ pub(super) fn run_for(
     );
     assert_eq!(token_balance(ctx, &no_ata) - no_before, position.no_staked);
     assert_eq!(token_balance(ctx, &staker_incentive_ata), expected_reward);
-    if expect_empty_outcome_vaults {
-        assert_eq!(token_balance(ctx, &setup.yes.vault), 0);
-        assert_eq!(token_balance(ctx, &setup.no.vault), 0);
+    if expect_only_fees_in_outcome_vaults {
+        assert_eq!(
+            token_balance(ctx, &setup.yes.vault),
+            pool.available_yes_fees
+        );
+        assert_eq!(token_balance(ctx, &setup.no.vault), pool.available_no_fees);
     }
 
     let position_account = ctx

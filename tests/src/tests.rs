@@ -1,4 +1,5 @@
 mod claim_rewards;
+mod create_pool;
 mod deposit_outcome;
 mod initialize;
 
@@ -18,7 +19,8 @@ fn test_reflex_lifecycle() {
     initialize::run(&ctx);
     assert_initialized(&ctx);
 
-    // create pool
+    let pool = create_pool::run(&ctx);
+    create_pool::assert_created(&ctx, &pool);
 
     // deposit_outcome::run(&ctx, &pool.yes, INITIAL_STAKE_AMOUNT).expect("initial YES stake failed");
     // deposit_outcome::run(&ctx, &pool.no, INITIAL_STAKE_AMOUNT).expect("initial NO stake failed");

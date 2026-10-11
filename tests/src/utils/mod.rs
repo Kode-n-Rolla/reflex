@@ -18,7 +18,7 @@ use spl_token_interface::instruction::{initialize_mint2, mint_to};
 // -----------------------------------------------------------------------------
 // constants
 // -----------------------------------------------------------------------------
-pub const PROGRAM_ID: Pubkey = pubkey!("E3GJVnGuMY187ztijNmnTKDwLV4avi4AcF9gCxRiYYWg");
+pub const PROGRAM_ID: Pubkey = pubkey!("7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv");
 pub const HARDCODED_MARKET: Pubkey = pubkey!("JDryy7Dowir9XXAaW2Gyosc5Hdm2hRv1KyU4HC3wR92B");
 
 pub const ONE_SOL: u64 = 1_000_000_000;

@@ -118,8 +118,8 @@ fn calculate_deposit_amounts(amount: u64, briber_fee_bps: u16) -> Result<(u64, u
     let fee: u64 = u128::from(amount)
         .checked_mul(u128::from(briber_fee_bps))
         .and_then(|v| v.checked_div(u128::from(BPS_DENOMINATOR)))
-        .and_then(|v| v.try_into()?)
-        .ok_or(ReflexError::MathOverflow);
+        .and_then(|v| v.try_into().ok())
+        .ok_or(ReflexError::MathOverflow)?;
 
     let net_amount = amount.checked_sub(fee).ok_or(ReflexError::MathOverflow)?;
     require!(net_amount > 0, ReflexError::ZeroEffectiveStake);

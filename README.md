@@ -16,6 +16,10 @@ the winning side and rounded down.
 - Production builds accept canonical mainnet USDC and WSOL incentive mints. Local
   mock incentive mints require an explicit `local-test` build and creator authority.
 
+## Devnet deployment
+
+Reflex is deployed to devnet at `7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv`.
+
 ## Build
 
 ```bash

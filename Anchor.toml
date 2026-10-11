@@ -9,6 +9,8 @@ skip-lint = false
 
 [programs.localnet]
 reflex = "7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv"
+[programs.devnet]
+reflex = "7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv"
 
 [provider]
 cluster = "localnet"

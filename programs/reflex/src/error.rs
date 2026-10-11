@@ -16,4 +16,18 @@ pub enum ReflexError {
     PooltNotSettled,
     #[msg("The rewards must be greater than zero")]
     ZeroRewards,
+    #[msg("The supplied World market is not valid")]
+    InvalidMarket,
+    #[msg("The outcome mints do not belong to the supplied World market")]
+    WrongMarketMints,
+    #[msg("The incentive mint is not supported")]
+    UnsupportedIncentiveMint,
+    #[msg("The protocol fee must be zero for this MVP")]
+    ProtocolFeeDisabled,
+    #[msg("The fee basis points are invalid")]
+    InvalidFeeBps,
+    #[msg("No briber fees are available")]
+    NoFeesAvailable,
+    #[msg("The deposit must create a positive net stake")]
+    ZeroEffectiveStake,
 }

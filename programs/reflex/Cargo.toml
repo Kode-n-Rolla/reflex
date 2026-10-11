@@ -20,6 +20,7 @@ custom-heap = []
 custom-panic = []
 
 skip-checks = []
+local-test = []
 
 [dependencies]
 anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }

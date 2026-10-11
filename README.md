@@ -54,3 +54,16 @@ The test covers incentive-mint validation, YES/NO fee accounting, creator fee
 withdrawal, YES and NO resolution, single- and both-side positions, two stakers,
 claim ordering, rounding, insufficient custody rollback, rejected repeated claims,
 and rejected deposits after resolution.
+
+---
+
+# Test Output
+
+The tests were run on localnet because devnet is not yet supported by the mock-mint integration test and World on devnet. The test output shows the expected behavior of the incentive pool, including the correct distribution of rewards and the handling of edge cases.
+
+![Test 1](/public/image.png)
+![Test 2](/public/image-1.png)
+
+## Architecture Diagram - Overview
+
+![Architecture Diagram](/public/diagram%20overview.png)

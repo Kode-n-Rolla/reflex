@@ -19,44 +19,44 @@ use solana_signer::Signer;
 
 use crate::utils::{
     fetch_account, fund_account, set_token_balance, setup, OutcomeSetup, TestContext,
-    HARDCODED_MARKET, INITIAL_POOL_FUNDING_AMOUNT, INITIAL_STAKE_AMOUNT, PROGRAM_ID,
+    INITIAL_POOL_FUNDING_AMOUNT, INITIAL_STAKE_AMOUNT, PROGRAM_ID,
 };
 
 #[test]
 fn test_reflex_lifecycle() {
-    let yes_ctx = setup(HARDCODED_MARKET);
+    let yes_ctx = setup(None);
     initialize::run(&yes_ctx);
     assert_initialized(&yes_ctx);
     run_lifecycle(&yes_ctx, reflex::ResolutionOutcome::Yes);
 
-    let no_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let no_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_lifecycle(&no_ctx, reflex::ResolutionOutcome::No);
 
-    let winner_only_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let winner_only_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_single_side_lifecycle(&winner_only_ctx, true);
 
-    let loser_only_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let loser_only_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_single_side_lifecycle(&loser_only_ctx, false);
 
-    let multi_user_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let multi_user_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_multi_user_lifecycle(&multi_user_ctx, true);
 
-    let reverse_claim_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let reverse_claim_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_multi_user_lifecycle(&reverse_claim_ctx, false);
 
-    let incentive_shortfall_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let incentive_shortfall_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_shortfall_lifecycle(&incentive_shortfall_ctx, true);
 
-    let outcome_shortfall_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let outcome_shortfall_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_shortfall_lifecycle(&outcome_shortfall_ctx, false);
 
-    let rounding_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let rounding_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_rounding_lifecycle(&rounding_ctx);
 
-    let adversarial_yes_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let adversarial_yes_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_adversarial_lifecycle(&adversarial_yes_ctx, reflex::ResolutionOutcome::Yes);
 
-    let adversarial_no_ctx = setup(solana_pubkey::Pubkey::new_unique());
+    let adversarial_no_ctx = setup(Some(solana_pubkey::Pubkey::new_unique()));
     run_adversarial_lifecycle(&adversarial_no_ctx, reflex::ResolutionOutcome::No);
 }
 

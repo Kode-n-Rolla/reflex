@@ -4,6 +4,7 @@ use anchor_client::{
     anchor_lang::prelude::{program_pack::Pack, system_instruction::create_account},
     Client, Cluster, CommitmentConfig, Instruction, Program,
 };
+use reflex::WORLD_MARKET_DATA_LEN;
 use reqwest::blocking::Client as HttpClient;
 use serde_json::{json, Value};
 
@@ -19,7 +20,7 @@ use spl_token_interface::instruction::{initialize_mint2, mint_to};
 // constants
 // -----------------------------------------------------------------------------
 pub const PROGRAM_ID: Pubkey = pubkey!("7rQ3UP2xNt173iqHodzJDto9RXtZALFrdeij8aoH41hv");
-pub const HARDCODED_MARKET: Pubkey = pubkey!("JDryy7Dowir9XXAaW2Gyosc5Hdm2hRv1KyU4HC3wR92B");
+pub const WORLD_PROGRAM_ID: Pubkey = pubkey!("prediCtPZCttYMvm2W3PtxmMxLmT1dtN7riU6Cxh6tM");
 
 pub const ONE_SOL: u64 = 1_000_000_000;
 pub const USDC_DECIMALS: u8 = 6;
@@ -164,9 +165,8 @@ pub fn derive_pdas(program_id: &Pubkey, market: &Pubkey, staker_address: &Pubkey
 // -----------------------------------------------------------------------------
 // initial setup fn
 // -----------------------------------------------------------------------------
-pub fn setup(market: Pubkey) -> TestContext {
+pub fn setup(opt_market: Option<Pubkey>) -> TestContext {
     let accounts = load_accounts();
-    let pdas = derive_pdas(&PROGRAM_ID, &market, &accounts.staker.pubkey());
 
     let authority_rc = Rc::new(accounts.authority.insecure_clone());
     let client = Client::new_with_options(
@@ -184,6 +184,25 @@ pub fn setup(market: Pubkey) -> TestContext {
     fund_account(&accounts.authority.pubkey());
     fund_account(&accounts.creator.pubkey());
     fund_account(&accounts.staker.pubkey());
+
+    let market = if let Some(market) = opt_market {
+        market
+    } else {
+        let world_accounts = program
+            .rpc()
+            .get_program_accounts(&WORLD_PROGRAM_ID)
+            .expect("Fail to get World program accounts");
+        let (last_world_market_address, _) = world_accounts
+            .iter()
+            .filter(|(_, a)| a.data.len() == WORLD_MARKET_DATA_LEN)
+            .last()
+            .expect("Fail to get one account");
+        *last_world_market_address
+    };
+
+    let pdas = derive_pdas(&PROGRAM_ID, &market, &accounts.staker.pubkey());
+
+    println!("world market address used: {market}");
 
     TestContext {
         client,
